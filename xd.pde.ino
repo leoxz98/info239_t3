@@ -1,6 +1,12 @@
 #include <VirtualWire.h>
 #include <stdint.h>
 
+void coutText(char context,int valOne,char text, char valTwo){
+  Serial.print(context);
+  Serial.print(valOne);
+  Serial.print(text);
+  Serial.println(valTwo);
+}
 
 void llenarMatriz(char matriz[15][8]) {
   for (int i = 0; i < 15; i++) {
@@ -18,7 +24,6 @@ bool verificarFilaCompleta(const char matriz[15][8], int fila) {
   }
   return true; // No hay ninguna "x", la fila está completa
 }
-
 
 char obtenerSegundoDigito(int numero) {
   int segundoDigito = numero % 10; // Obtener el segundo dígito utilizando el operador módulo (%)
@@ -70,8 +75,9 @@ void imprimirMatriz(char matriz[15][8]) {
     Serial.println();
   }
 }
-// definicion de variables 
 
+// definicion de variables 
+//const uint8_t nosotros = 6;
 const uint8_t origen = 6; // Nuestro grupo (6)
 const uint8_t destino = 0; // Destino (0)
 const uint8_t objetivo = 0; // objetivo
@@ -84,8 +90,6 @@ uint8_t msjSend[3]; // arreglo de lo que enviamos
 
 int exito = 0; // si es 8 se considera exito al enviar todos los paquetes sin colision
 
-
-
 void setup() {
   Serial.begin(9600);
   vw_set_ptt_inverted(true);
@@ -97,25 +101,21 @@ void setup() {
 }
 
 void loop() {
+
   msjSend[0] = origen;
   msjSend[1] = destino;
 
   uint8_t buf[VW_MAX_MESSAGE_LEN];
   uint8_t buflen = VW_MAX_MESSAGE_LEN;
+
   if (vw_get_message(buf, &buflen)) {
-    //guardar
-      Serial.println("colision:");
       
       uint8_t ori = buf[0];
       uint8_t desti = buf[1];
       uint8_t msj = buf[2];
-
-      Serial.println(char(msj));
-      
-
       int indexOri = int(ori);
 
-
+      coutText("Colision con grupo: ",indexOri," Msj: ",char(msj));
 
       // verificar si msj es letra o numero
       if( charToInt(char(msj)) == -1){
@@ -123,16 +123,6 @@ void loop() {
         int asave = int(msj);
         Serial.println("aassave: ");
         Serial.println(asave);
-
-        /*if( asave > 47 && asave < 58){          
-          matriz[indexOri][6] = '0';
-          matriz[indexOri][7] = char(msj);
-        }
-        else{
-          matriz[indexOri][6] = '1';
-          matriz[indexOri][7] = obtenerSegundoDigito(asave);
-        } */
-
         if (asave == 48 && matriz[indexOri][6] == 'x' ){
           matriz[indexOri][6] = '0';
         }
@@ -150,58 +140,32 @@ void loop() {
             matriz[indexOri][7] = char(msj);
           }
         }
-
       }
-
       else{
         int indiceLetra = charToInt(char(msj));
         matriz[indexOri][indiceLetra] = char(msj);
       }
-
-
-
-    }
+  }
 
   else{
     int i = 0;
     while(i < 8) {
-
-      
 
       if (vw_get_message(buf, &buflen)) {   // Detección de colisiones
       //guardar en matriz y esperar tiempo random
         uint8_t ori = buf[0];
         uint8_t desti = buf[1];
         uint8_t msj = buf[2];
-
         int indexOri = int(ori);
 
-        Serial.println("colision w:");
-        Serial.println(char(msj));
-        
-        // verificar si msj es letra o numero
-
-        Serial.println("es -1:");
-        Serial.println(charToInt(char(msj)));
-
+        coutText("Colision con grupo: ",indexOri," Msj: ",char(msj));
 
         // verificar si msj es letra o numero
-      if( charToInt(char(msj)) == -1){
-        Serial.println("entro a guardar nums!!");
-        int asave = int(msj);
-        Serial.println("aassave: ");
-        Serial.println(asave);
-
-        /*if( asave > 47 && asave < 58){          
-          matriz[indexOri][6] = '0';
-          matriz[indexOri][7] = char(msj);
-        }
-        else{
-          matriz[indexOri][6] = '1';
-          matriz[indexOri][7] = obtenerSegundoDigito(asave);
-        } */
-
-        //asave == 48 && matriz[indexOri][6] == '0'
+        if( charToInt(char(msj)) == -1){
+          Serial.println("entro a guardar nums!!");
+          int asave = int(msj);
+          Serial.println("aassave: ");
+          Serial.println(asave);
 
         if (asave == 48 && matriz[indexOri][6] == 'x' ){
           matriz[indexOri][6] = '0';
@@ -221,34 +185,29 @@ void loop() {
             matriz[indexOri][7] = char(msj);
           }
         }
-
       }
-
       else{
         int indiceLetra = charToInt(char(msj));
         matriz[indexOri][indiceLetra] = char(msj);
       }
 
-
+      unsigned int tiempoAleatorio = random(1000, 2000); // Genera tiempo aleatorio de espera
+      delay(tiempoAleatorio); // Espera durante el tiempo aleatorio generado
+        
+      imprimirMatriz(matriz);       
+        
+      } 
+      else{
+        msjSend[2] = mensaje[i]; // Cambiar el último término de mensaje[i]
+        vw_send((uint8_t *)msjSend, 24);
+        vw_wait_tx(); 
         unsigned int tiempoAleatorio = random(1000, 2000); // Genera tiempo aleatorio de espera
         delay(tiempoAleatorio); // Espera durante el tiempo aleatorio generado
         
-        imprimirMatriz(matriz);       
-        
-      } //if co
-    else{
-      msjSend[2] = mensaje[i]; // Cambiar el último término a mensaje[i]
-      vw_send((uint8_t *)msjSend, 24);
-      vw_wait_tx(); //duda de dejar
-      unsigned int tiempoAleatorio = random(1000, 2000); // Genera tiempo aleatorio de espera
-      delay(tiempoAleatorio); // Espera durante el tiempo aleatorio generado
-      
-      Serial.println("mensaje enviado:");
-      Serial.println(char(mensaje[i]));
+        Serial.println("mensaje enviado:");
+        Serial.print(char(mensaje[i]));
 
-      i+= 1;
-
-
+        i+= 1;
       }
     }
   }
